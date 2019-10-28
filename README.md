@@ -2,16 +2,6 @@
 
 История изменений: [смотерть тут](changelog.md)
 
-Полноценный пример использования того, что описано ниже можно 
-смотреть в [Пример проекта](https://gitlab.com/spectrum-internal/b2b-sell-reports)
-
-Обратить внимание на 
-
-1. [Настройки GIT](https://gitlab.com/spectrum-internal/b2b-sell-reports/blob/master/.gitmodules)
-2. [Настройки GRADLE](https://gitlab.com/spectrum-internal/b2b-sell-reports/blob/master/build.gradle.kts)
-3. [Настройки CI](https://gitlab.com/spectrum-internal/b2b-sell-reports/blob/master/.gitlab-ci.yml)
-
-
 # Применение к проекту
 
 Добавление как submodule в проект
@@ -20,8 +10,6 @@
 git submodule add <relative_path>/buildSrc
 ```
 > Внимание! Для совместимости в GitLab CI следует использовать только относительные пути 
-например если у вас репозиторий https://gitlab.com/spectrum-internal/b2b-sell-reports, то добавлять
-подмодуль надо как `git submodule add ../buildSrc`
 
 После этого можно выполнить команду инициализации
 ```bash
