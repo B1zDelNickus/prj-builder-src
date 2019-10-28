@@ -1,0 +1,7 @@
+@startuml
+[build_src] --> [build_tools] : uses
+[core] --> [common_externals]
+[external_adapters] --> [core]
+[external_adapters] --> [special_externals]
+[source_core] --> [core]
+@enduml

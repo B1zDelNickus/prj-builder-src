@@ -1,0 +1,38 @@
+#!/bin/bash
+cd ..
+PROJECT_NAME=${PWD##*/}
+NORMALIZED_PROJECT_NAME=${PROJECT_NAME//-/_}
+cd buildSrc
+git pull origin master
+cd ..
+git reset
+
+./gradlew createmodule -Pmodulename=gen
+mkdir -p .githooks
+[ ! -f .githooks/pre-commit ] &&
+echo "#!/bin/sh" > .githooks/pre-commit &&
+echo "export GENERATE_ARTEFACTS=true" >> .githooks/pre-commit &&
+echo "./gradlew :gen:cleanTest :gen:test --tests codes.spectrum.$NORMALIZED_PROJECT_NAME.gen.*" >> .githooks/pre-commit
+git config "core.hooksPath" ".githooks"
+
+git add buildSrc
+cd buildSrc
+./gradlew resetci updatelogback
+cd ..
+mkdir ./gradle
+mkdir ./gradle/wrapper
+cp buildSrc/gradle/wrapper/gradle-wrapper.jar ./gradle/wrapper/gradle-wrapper.jar 
+cp buildSrc/gradle/wrapper/gradle-wrapper.properties ./gradle/wrapper/gradle-wrapper.properties
+
+if [ "$1" = "nocommit" ]
+then
+	echo "No commit required after upbuilder"
+else 
+	git reset
+	git add buildSrc
+	git add .gitlab-ci.yml
+	git add upbuilder
+	git add gradle/wrapper/gradle-wrapper.jar
+	git add gradle/wrapper/gradle-wrapper.properties
+	git commit -m "buildSrc upgraded"
+fi

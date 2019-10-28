@@ -1,0 +1,51 @@
+@startuml
+
+cloud "core" {
+    [sources-core]
+    [gson]
+}
+
+cloud "special"{
+    [databases]
+    [bus]
+    [ktor]
+}
+
+package "source" {
+    [test]
+
+    folder integration {
+
+        [model]<<maven>>
+        model-->core
+        test --> model
+
+    }
+
+    folder in {
+            [db]<<migration>>
+            [transport]
+            [agent]<<service>>
+            transport -> db
+            agent -> transport
+            in --> model
+            in .> special
+     }
+    folder out {
+        [provider]<<maven>>
+        [service]<<service>>
+        [client]<<maven>>
+        client ..> service : rest
+        service --> provider
+        provider ..> db
+        out .> special
+        out --> model
+    }
+    integration ..> test
+    in ..> test
+    out ..> test
+}
+
+
+
+@enduml

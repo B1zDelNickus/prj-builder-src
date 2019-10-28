@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Минимальный маппинг для включения в отчет</title>
+    <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style> input[type="checkbox"] {height: 20px; width: 20px;} </style>
+</head>
+<body class="container col align-items-center">
+<div class="row">
+    <h1>Источник - demoname (demo)</h1>
+</div>
+<div class="row">
+    <p>Доступ к Insomnia проекту (<a href="./insomnia.json">JSON</a>, <a href="./insomnia.yaml">YAML</a>)<br></p>
+</div>
+<div class="row">
+    <p>Полную документацию можно посмотреть <a href="./doc">здесь</a></p>
+</div>
+<div class="row">
+    <div id="source-page" class="col"></div>
+</div>
+<script type="text/babel">
+class SourceServicePage extends React.Component {
+    constructor(props) {
+        super(props);
+        const baseurl = window.location.hostname;
+        this.systems = {
+            DevRestSystem : {
+                name:"Стейдж",
+                url:"https://dev-demo-sources.spectrum.codes/"
+            },
+            ProdRestSystem : {
+                name:"Прод",
+                url:"https://demo-sources.spectrum.codes/"
+            },
+            LocalRestSystem : {
+                name:"Локальный",
+                url:"http://127.0.0.1:8080/"
+            },
+            LocalRelativeRestSystem : {
+                name:"Локальный (относительный)",
+                url:""
+            }
+        }
+        const sys = (Object.entries(this.systems).find((e)=>e[1].url.includes(baseurl)) || ["RelativeRestSystem"])[0];
+        this.defaultForm = {case:'', sys:sys, query:"", stub:"", throwError:"", sourceDelay:"", timeout:"",};
+        this.state = {form:{case:'', sys:sys, query:"", stub:"", throwError:"", sourceDelay:"", timeout:"",}, data :null};
+        this.handleChange = this.handleChange.bind(this);
+        this.handleSubmit = this.handleSubmit.bind(this);
+
+        this.cases = {
+            NoneCase : {
+                name:"Пользовательский",
+                timeout:"0",
+                description:"<p>Настраиваемый <em>пользователем</em> кейс</p>",
+                stub:"",
+                throwError:"false",
+                sourceDelay:"0"
+            },
+            TimeoutCase : {
+                name:"Имитация таймаута",
+                timeout:"10",
+                description:"<p>Кейс имитации <em>таймаута</em></p>",
+                stub:"",
+                throwError:"false",
+                sourceDelay:"100"
+            },
+            ErrorCase : {
+                name:"Имитация ошибки",
+                timeout:"0",
+                description:"<p>Кейс имитации <em>ошибки</em></p>",
+                stub:"",
+                throwError:"true",
+                sourceDelay:"0"
+            }
+        }
+    }
+
+    componentDidMount() {
+        this.handleChange({name:"case",value:"NoneCase"});
+    }
+
+    handleChange(event) {
+        const {name,value} = event.target || event;
+        const form = this.state.form;
+        if (event.target && event.target.type == "checkbox") {
+            form[name] = event.target.checked;
+        }
+        else {
+            form[name] = value;
+        }
+        if (name=="case") {
+            const _case = this.cases[value];
+            for(var p of Object.entries(this.state.form)) {
+                if (p[0]=="sys") continue;
+                if (p[0]=="case") continue;
+                this.state.form[p[0]] = _case[p[0]] || this.defaultForm[p[0]];
+                let input = document.getElementById(p[0] + "_control");
+                if (input.type == "checkbox") {
+                    input.checked = this.state.form[p[0]]=='true';
+                }
+            }
+        } else if (name!='sys') {
+            form["case"] = "NoneCase";
+        }
+        this.setState({form});
+        if (name=='case' || name=='sys') {
+            this.handleSubmit();
+        }
+    }
+
+    prepareQuery() {
+        let self = this;
+        var result = {
+            caseCode:self.state.form.case,
+            timeout:self.state.form.timeout,
+            query : {
+                query:self.state.form.query
+            },
+            debug : {
+                stub:self.state.form.stub,
+                throwError:self.state.form.throwError,
+                sourceDelay:self.state.form.sourceDelay
+            }
+        }
+        return result;
+    }
+
+    handleSubmit(event) {
+        const self = this;
+        event && event.preventDefault();
+        const url = this.systems[this.state.form.sys].url;
+        fetch(`${url}/api/v1/sources/demo/cli/execute`, {
+            method:"POST",
+            headers: {
+            'Accept': 'application/json;charset=utf-8',
+            'Content-Type': 'application/json;charset=utf-8'
+        },
+            body: JSON.stringify(this.prepareQuery())
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(myJson) {
+            self.setState({data:myJson})
+        });
+    }
+
+    render() {
+        return (
+            <div className="row">
+                <div className="col-2 bg-light p-3">
+                    <form onSubmit={this.handleSubmit}>
+                        <div className="form-group" key="case">
+                            <label htmlFor="case_control"><span title="case">Кейсы</span></label>
+                            <select id="case_control" name="case" className="form-control" value={this.state.form.case} onChange={this.handleChange}>
+                                <option key="NoneCase" value="NoneCase">Пользовательский</option>
+                                <option key="TimeoutCase" value="TimeoutCase">Имитация таймаута</option>
+                                <option key="ErrorCase" value="ErrorCase">Имитация ошибки</option>
+                            </select>
+                        </div>
+                        <div className="form-group" key="sys">
+                            <label htmlFor="sys_control"><span title="sys">Системы</span></label>
+                            <select id="sys_control" name="sys" className="form-control" value={this.state.form.sys} onChange={this.handleChange}>
+                                <option key="DevRestSystem" value="DevRestSystem">Стейдж</option>
+                                <option key="ProdRestSystem" value="ProdRestSystem">Прод</option>
+                                <option key="LocalRestSystem" value="LocalRestSystem">Локальный</option>
+                                <option key="LocalRelativeRestSystem" value="LocalRelativeRestSystem">Локальный (относительный)</option>
+                            </select>
+                        </div>
+                        <div className="form-group" key="query">
+                            <label htmlFor="query_control"><span title="query">query</span></label>
+                            <input id="query_control" className="form-control" type="text" name="query" value={this.state.form.query} onChange={this.handleChange}/>
+                        </div>
+                        <div className="form-group" key="stub">
+                            <label htmlFor="stub_control"><span title="stub">stub</span></label>
+                            <input id="stub_control" className="form-control" type="text" name="stub" value={this.state.form.stub} onChange={this.handleChange}/>
+                        </div>
+                        <div className="form-group" key="throwError">
+                            <label htmlFor="throwError_control"><span title="throwError">throwError</span></label>
+                            <input id="throwError_control" className="form-control" type="checkbox" name="throwError" value={this.state.form.throwError} onChange={this.handleChange} defaultChecked={this.state.form.throwError=='true'}/>
+                        </div>
+                        <div className="form-group" key="sourceDelay">
+                            <label htmlFor="sourceDelay_control"><span title="sourceDelay">sourceDelay</span></label>
+                            <input id="sourceDelay_control" className="form-control" type="number" name="sourceDelay" value={this.state.form.sourceDelay} onChange={this.handleChange}/>
+                        </div>
+                        <div className="form-group" key="timeout">
+                            <label htmlFor="timeout_control"><span title="timeout">timeout</span></label>
+                            <input id="timeout_control" className="form-control" type="number" name="timeout" value={this.state.form.timeout} onChange={this.handleChange}/>
+                        </div>
+                        <div>
+                            <input type="submit" value="Выполнить запрос" />
+                        </div>
+                    </form>
+                </div>
+                <div id="example" className="col-6" >
+                    {this.state.data && new SourceBlock(this.cases[this.state.form["case"]], this.state.data).render()}
+                </div>
+            </div>
+        );
+    }
+}
+
+class SourceBlock {
+    constructor(_case, data){
+        if (_case === undefined || _case.description === undefined) {
+            this.caseDescription = "Описание отсутствует";
+        }
+        else {
+            this.caseDescription = _case.description;
+        }
+        this.data = data;
+    }
+    
+    render() {
+        return (
+            <div className="results col">
+                <h4>Описание кейса</h4>
+                { <div dangerouslySetInnerHTML={{ __html: this.caseDescription }}/> }
+                <h2>Результаты обработки</h2>
+                <table>
+                    <tbody>
+                    <tr>
+                        <td>Статус</td>
+                        <td>{this.data.result.status}</td>
+                    </tr>
+                    { !this.data.result.error && this.data.result.status=="OK" &&
+                        <tr>
+                            <td>Ответ</td>
+                        <td><pre>{JSON.stringify(this.data.result.data, null, 3)}</pre></td>
+                        </tr>
+                    }
+                    { this.data.result.error && 
+                        <tr>
+                            <td>Ошибка</td>
+                            <td><pre>{JSON.stringify(this.data.result.error, null, 3)}</pre></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+}
+    
+ReactDOM.render(
+    <SourceServicePage/>,
+    document.getElementById("source-page")
+);</script>
+</body>
+</html>

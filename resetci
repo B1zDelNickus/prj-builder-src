@@ -1,0 +1,9 @@
+#!/bin/bash
+cd buildSrc
+./gradlew resetci
+cd ..
+git reset
+git add resetci
+git add .gitlab-ci.yml
+git add upbuilder
+git commit -m "ci upgraded"

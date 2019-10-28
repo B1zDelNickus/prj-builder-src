@@ -1,0 +1,23 @@
+#!/bin/bash
+PROJECT_NAME=${PWD##*/}
+cd buildSrc
+./upbuilder nocommit
+mkdir ../resources
+cp -n -r ./resources/empty/*  ./..
+cp  ./resources/empty/.gitignore  ./../.gitignore # cannot copy another way
+if [ ! -f ./../settings.gradle.kts ] 
+then 
+	echo "rootProject.name = \"$PROJECT_NAME\"" > ./../settings.gradle.kts
+	echo '// include(/* add your modules here and uncomment */)' >> ./../settings.gradle.kts
+fi
+
+cd ..
+./gradlew createmodule -Pmodulename=gen
+if [ "$1" = "nocommit" ]
+then
+	echo "No commit required after init"
+else 
+	git reset
+	git add --a
+	git commit -m "init commit after apply buildSrc"
+fi
